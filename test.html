@@ -88,8 +88,8 @@ button.expand-btn { background:#001f3f;color:white;border:none;padding:3px 6px;b
 </div>
 
 <div id="sekolahSection" style="padding:10px;"></div>
-</main>
 
+</main>
 <footer><p>&copy; 2025 DINAS PENDIDIKAN DAN KEBUDAYAAN - Semua Hak Dilindungi.</p></footer>
 
 <script>
@@ -101,7 +101,7 @@ function toggleDarkMode(){
 
 // Endpoint CSV per kecamatan
 const kecamatanEndpoints = {
- "Banawa": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSCAaRZ9atAiEb-BvMChP_3Wq6wtmUUlNiTWVtwzh7r9KX5sRRZpq5WppSrSebym8z6-qI3zfWQOTNu/pub?gid=0&single=true&output=csv",
+  "Banawa": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSCAaRZ9atAiEb-BvMChP_3Wq6wtmUUlNiTWVtwzh7r9KX5sRRZpq5WppSrSebym8z6-qI3zfWQOTNu/pub?gid=0&single=true&output=csv",
   "Banawa Tengah": "https://docs.google.com/spreadsheets/d/e/2PACX-1vToEAn2MqanfOGSKsDsV0cfGeXt6mJhf7DPEzgFeBl8GQkrbzd4iFuM3tRwyo_wV6m9PlxjQ-9Z0QhC/pub?gid=0&single=true&output=csv",
   "Banawa Selatan": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQwth8ToDewTdvfvhlYuywOolNFwvc6eA4wer_OGKgNk-FoDvIQaHthsQHtMiis3cAsj4AnLzYKXG9p/pub?gid=0&single=true&output=csv",
   "Rio Pakava": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQQX_Z6U7nanrMlPxL8N1m40jkFiMAHCIbZQA_iljNj3QZ8Z5FGMTAzYBbAC_D9Xy2PT3fUf0LL0n7F/pub?gid=0&single=true&output=csv",
@@ -159,7 +159,7 @@ async function loadAllData(){
     }
     populateFilter();
     updateData();
-    setInterval(updateData, 300000);
+    setInterval(updateData, 300000); // refresh 5 menit
 }
 
 // Populate filter kecamatan
@@ -185,10 +185,10 @@ function updateData(){
         if(filter !== "all" && filter !== kec) continue;
         let ditemukan=0,tidak=0,baik=0,ringan=0,berat=0,nilai=0;
         const sekolahMap = {};
+
         data.forEach(r=>{
             if(search && !r.sekolah.toLowerCase().includes(search)) return;
             if(r.konfirmasi==="Ditemukan") ditemukan++; else tidak++;
-            // Kondisi dari "Kondisi Saat Ini"
             switch(r.kondisi){
                 case "Baik": baik++; break;
                 case "Rusak Ringan": ringan++; break;
