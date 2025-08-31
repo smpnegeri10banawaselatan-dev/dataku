@@ -153,7 +153,7 @@ async function loadAllData(){
             barang: r["Nama Barang"]||"",
             nibar: r["NIBAR"]||r["No. Register"]||"",
             konfirmasi: r["Konfirmasi Keberadaan"]||"Tidak Ditemukan",
-            kondisi: r["Kondisi Saat Ini"]||"Baik",
+            kondisi: r["Kondisi Saat Ini"]||"",
             nilai: parseNumberIndo(r["Harga Perolehan"]||r["Nilai Perolehan"])
         }));
     }
@@ -179,22 +179,31 @@ function updateData(){
     const tbody = document.querySelector("#rekapTable tbody");
     tbody.innerHTML = "";
     document.getElementById("sekolahSection").innerHTML = "";
-    let total = {Ditemukan:0, Tidak:0, Baik:0, Ringan:0, Berat:0, Nilai:0};
+    let total = {Ditemukan:0, Tidak:0, Baik:0, Ringan:0, Berat:0, TidakDitemukanKondisi:0, Nilai:0};
 
     for(const [kec, data] of Object.entries(dataKecamatan)){
         if(filter !== "all" && filter !== kec) continue;
-        let ditemukan=0,tidak=0,baik=0,ringan=0,berat=0,nilai=0;
+        let ditemukan=0,tidak=0,baik=0,ringan=0,berat=0,tidakKondisi=0,nilai=0;
         const sekolahMap = {};
 
         data.forEach(r=>{
             if(search && !r.sekolah.toLowerCase().includes(search)) return;
+            // Konfirmasi Keberadaan
             if(r.konfirmasi==="Ditemukan") ditemukan++; else tidak++;
-            switch(r.kondisi){
-                case "Baik": baik++; break;
-                case "Rusak Ringan": ringan++; break;
-                case "Rusak Berat": berat++; break;
+
+            // Kondisi Barang
+            if(!r.kondisi || r.kondisi.trim()==="") tidakKondisi++;
+            else {
+                switch(r.kondisi){
+                    case "Baik": baik++; break;
+                    case "Rusak Ringan": ringan++; break;
+                    case "Rusak Berat": berat++; break;
+                }
             }
+
             nilai += r.nilai;
+
+            // Detail per sekolah
             if(!sekolahMap[r.sekolah]) sekolahMap[r.sekolah] = {barang:0,nilai:0,detail:[]};
             sekolahMap[r.sekolah].barang++;
             sekolahMap[r.sekolah].nilai += r.nilai;
@@ -207,11 +216,13 @@ function updateData(){
         total.Ringan += ringan;
         total.Berat += berat;
         total.Nilai += nilai;
+        total.TidakDitemukanKondisi += tidakKondisi;
 
         const tr = document.createElement("tr");
         tr.innerHTML = `<td>${kec}</td><td>${ditemukan}</td><td>${tidak}</td><td>${baik}</td><td>${ringan}</td><td>${berat}</td><td>${nilai.toLocaleString("id-ID")}</td>`;
         tbody.appendChild(tr);
 
+        // Bagian sekolah sama seperti sebelumnya
         const section = document.getElementById("sekolahSection");
         let html = `<h3>Daftar Sekolah - ${kec}</h3><table><thead><tr><th>Nama Sekolah</th><th>Jumlah Barang</th><th>Nilai Perolehan (Rp)</th></tr></thead><tbody>`;
         let idx=0;
@@ -219,7 +230,7 @@ function updateData(){
             idx++; const detailId=`detail_${kec}_${idx}`;
             html += `<tr><td><button class="expand-btn" onclick="toggleDetail('${detailId}')">➕</button>${sName}</td><td>${val.barang}</td><td>${val.nilai.toLocaleString("id-ID")}</td></tr>`;
             html += `<tr id="${detailId}" style="display:none;"><td colspan="3"><table style="width:100%; border:1px solid #ddd; font-size:0.8rem;"><thead><tr><th>Nama Barang</th><th>NIBAR</th><th>Kondisi Saat Ini</th><th>Nilai Perolehan (Rp)</th></tr></thead><tbody>`;
-            val.detail.forEach(it=>{html += `<tr><td>${it.barang}</td><td>${it.nibar}</td><td>${it.kondisi}</td><td>${it.nilai.toLocaleString("id-ID")}</td></tr>`});
+            val.detail.forEach(it=>{html += `<tr><td>${it.barang}</td><td>${it.nibar}</td><td>${it.kondisi || "Tidak Ditemukan"}</td><td>${it.nilai.toLocaleString("id-ID")}</td></tr>`});
             html += `</tbody></table></td></tr>`;
         }
         html += `</tbody></table>`;
@@ -233,6 +244,7 @@ function updateData(){
     document.getElementById("totalRusakBerat").textContent = total.Berat;
     document.getElementById("totalNilai").textContent = total.Nilai.toLocaleString("id-ID");
     document.getElementById("lastUpdate").textContent = "Data terakhir diperbarui: " + new Date().toLocaleTimeString();
+
     updateCharts(total);
 }
 
@@ -254,7 +266,10 @@ function updateCharts(total){
 
     chartKondisi = new Chart(ctx2, {
         type: "bar",
-        data: { labels:["Baik","Rusak Ringan","Rusak Berat"], datasets:[{data:[total.Baik,total.Ringan,total.Berat], backgroundColor:["#3b82f6","#facc15","#f87171"]}] },
+        data: { 
+            labels:["Baik","Rusak Ringan","Rusak Berat","Tidak Ditemukan"], 
+            datasets:[{data:[total.Baik,total.Ringan,total.Berat,total.TidakDitemukanKondisi], backgroundColor:["#3b82f6","#facc15","#f87171","#9ca3af"]}] 
+        },
         options: { responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}} }
     });
 
