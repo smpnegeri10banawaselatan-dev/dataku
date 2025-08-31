@@ -100,7 +100,7 @@ function toggleDarkMode(){
 }
 
 // Endpoint CSV per kecamatan
-const kecamatanEndpoints = { const dataKecamatan = {
+const kecamatanEndpoints = {
   "Banawa": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSCAaRZ9atAiEb-BvMChP_3Wq6wtmUUlNiTWVtwzh7r9KX5sRRZpq5WppSrSebym8z6-qI3zfWQOTNu/pub?gid=0&single=true&output=csv",
   "Banawa Tengah": "https://docs.google.com/spreadsheets/d/e/2PACX-1vToEAn2MqanfOGSKsDsV0cfGeXt6mJhf7DPEzgFeBl8GQkrbzd4iFuM3tRwyo_wV6m9PlxjQ-9Z0QhC/pub?gid=0&single=true&output=csv",
   "Banawa Selatan": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQwth8ToDewTdvfvhlYuywOolNFwvc6eA4wer_OGKgNk-FoDvIQaHthsQHtMiis3cAsj4AnLzYKXG9p/pub?gid=0&single=true&output=csv",
@@ -118,7 +118,6 @@ const kecamatanEndpoints = { const dataKecamatan = {
   "Sojol": "https://docs.google.com/spreadsheets/d/e/2PACX-1vR_M8W7eNSRgJiDs-lU0zBDAT2OEAN6J1g1G9UvgreUf7GS0_Q987XsgzYdDESWAu_P86BezxKn6nJl/pub?gid=0&single=true&output=csv",
   "Sojol Utara": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRJAkrtkVPBLcUmM8OsByQDfndFGv-6MetoMsB_DGoqimZQGcAg9Lxe_glv_qAJoVXoY9TCHdnCDa6Y/pub?gid=0&single=true&output=csv"
 };
- };
 
 let dataKecamatan = {};
 let chartKonfirmasi, chartKondisi, chartNilai;
@@ -189,19 +188,13 @@ function updateData(){
 
         data.forEach(r=>{
             if(search && !r.sekolah.toLowerCase().includes(search)) return;
-            // Konfirmasi Keberadaan
             if(r.konfirmasi==="Ditemukan") ditemukan++; else tidak++;
-
-            // Kondisi Barang
             if(!r.kondisi || r.kondisi.trim()==="") tidakKetemu++;
             else if(r.kondisi==="Baik") baik++;
             else if(r.kondisi==="Rusak Ringan") ringan++;
             else if(r.kondisi==="Rusak Berat") berat++;
-            else tidakKetemu++; // untuk kondisi tidak dikenal
-
+            else tidakKetemu++;
             nilai += r.nilai;
-
-            // Detail per sekolah
             if(!sekolahMap[r.sekolah]) sekolahMap[r.sekolah] = {barang:0,nilai:0,detail:[]};
             sekolahMap[r.sekolah].barang++;
             sekolahMap[r.sekolah].nilai += r.nilai;
@@ -220,21 +213,16 @@ function updateData(){
         tr.innerHTML = `<td>${kec}</td><td>${ditemukan}</td><td>${tidak}</td><td>${baik}</td><td>${ringan}</td><td>${berat}</td><td>${tidakKetemu}</td><td>${nilai.toLocaleString("id-ID")}</td>`;
         tbody.appendChild(tr);
 
-        // Bagian sekolah
         const section = document.getElementById("sekolahSection");
-        let html = `<h3>Daftar Sekolah - ${kec}</h3><table><thead><tr><th>Nama Sekolah</th><th>Jumlah Barang</th><th>Nilai Perolehan (Rp)</th></tr></thead><tbody>`;
-        let idx=0;
-        for(const [sName,val] of Object.entries(sekolahMap)){
-            idx++; const detailId=`detail_${kec}_${idx}`;
-            html += `<tr><td><button class="expand-btn" onclick="toggleDetail('${detailId}')">➕</button>${sName}</td><td>${val.barang}</td><td>${val.nilai.toLocaleString("id-ID")}</td></tr>`;
-            html += `<tr id="${detailId}" style="display:none;"><td colspan="3"><table style="width:100%; border:1px solid #ddd; font-size:0.8rem;"><thead><tr><th>Nama Barang</th><th>NIBAR</th><th>Kondisi Saat Ini</th><th>Nilai Perolehan (Rp)</th></tr></thead><tbody>`;
-            val.detail.forEach(it=>{html += `<tr><td>${it.barang}</td><td>${it.nibar}</td><td>${it.kondisi || "Tidak Diketemukan"}</td><td>${it.nilai.toLocaleString("id-ID")}</td></tr>`});
-            html += `</tbody></table></td></tr>`;
-        }
+        let html = `<h3>Daftar Sekolah - ${kec}</h3><table><thead><tr><th>Nama Sekolah</th><th>Jumlah Barang</th><th>Total Nilai (Rp)</th></tr></thead><tbody>`;
+        Object.entries(sekolahMap).forEach(([n, v])=>{
+            html += `<tr><td>${n}</td><td>${v.barang}</td><td>${v.nilai.toLocaleString("id-ID")}</td></tr>`;
+        });
         html += `</tbody></table>`;
         section.innerHTML += html;
     }
 
+    // Update totals
     document.getElementById("totalDitemukan").textContent = total.Ditemukan;
     document.getElementById("totalTidakDitemukan").textContent = total.Tidak;
     document.getElementById("totalBaik").textContent = total.Baik;
@@ -242,53 +230,45 @@ function updateData(){
     document.getElementById("totalRusakBerat").textContent = total.Berat;
     document.getElementById("totalTidakDiketemukan").textContent = total.TidakDiketemukan;
     document.getElementById("totalNilai").textContent = total.Nilai.toLocaleString("id-ID");
-    document.getElementById("lastUpdate").textContent = "Data terakhir diperbarui: " + new Date().toLocaleTimeString();
 
-    updateCharts(total);
+    document.getElementById("lastUpdate").textContent = "Terakhir di-update: " + new Date().toLocaleString("id-ID");
+
+    // Update charts
+    updateCharts();
 }
 
 // Update chart
-function updateCharts(total){
-    const ctx1 = document.getElementById("rekapKonfirmasi").getContext("2d");
-    const ctx2 = document.getElementById("rekapKondisi").getContext("2d");
-    const ctx3 = document.getElementById("rekapNilai").getContext("2d");
+function updateCharts(){
+    const labels = Object.keys(dataKecamatan);
+    const konfirmasiData = labels.map(k=>{
+        let data = dataKecamatan[k];
+        return data.filter(r=>r.konfirmasi==="Ditemukan").length;
+    });
+    const kondisiBaik = labels.map(k=>dataKecamatan[k].filter(r=>r.kondisi==="Baik").length);
+    const kondisiRingan = labels.map(k=>dataKecamatan[k].filter(r=>r.kondisi==="Rusak Ringan").length);
+    const kondisiBerat = labels.map(k=>dataKecamatan[k].filter(r=>r.kondisi==="Rusak Berat").length);
+    const nilaiPerolehan = labels.map(k=>dataKecamatan[k].reduce((a,b)=>a+(b.nilai||0),0));
 
     if(chartKonfirmasi) chartKonfirmasi.destroy();
+    chartKonfirmasi = new Chart(document.getElementById("rekapKonfirmasi"), {
+        type:"bar", data:{labels, datasets:[{label:"Ditemukan", data:konfirmasiData, backgroundColor:"#3b82f6"}]}, options:{responsive:true,plugins:{legend:{display:false}}}
+    });
+
     if(chartKondisi) chartKondisi.destroy();
+    chartKondisi = new Chart(document.getElementById("rekapKondisi"), {
+        type:"bar", data:{labels,datasets:[
+            {label:"Baik", data:kondisiBaik, backgroundColor:"#10b981"},
+            {label:"Rusak Ringan", data:kondisiRingan, backgroundColor:"#facc15"},
+            {label:"Rusak Berat", data:kondisiBerat, backgroundColor:"#ef4444"}
+        ]}, options:{responsive:true}
+    });
+
     if(chartNilai) chartNilai.destroy();
-
-    chartKonfirmasi = new Chart(ctx1, {
-        type: "pie",
-        data: { labels:["Ditemukan","Tidak Ditemukan"], datasets:[{data:[total.Ditemukan,total.Tidak], backgroundColor:["#4ade80","#f87171"]}] },
-        options: { responsive:true, plugins:{legend:{position:"bottom"}} }
-    });
-
-    chartKondisi = new Chart(ctx2, {
-        type: "bar",
-        data: { 
-            labels:["Baik","Rusak Ringan","Rusak Berat","Tidak Diketemukan"], 
-            datasets:[{data:[total.Baik,total.Ringan,total.Berat,total.TidakDiketemukan], backgroundColor:["#3b82f6","#facc15","#f87171","#9ca3af"]}] 
-        },
-        options: { responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}} }
-    });
-
-    chartNilai = new Chart(ctx3, {
-        type: "doughnut",
-        data: { labels:["Nilai Barang"], datasets:[{data:[total.Nilai], backgroundColor:["#6366f1"]}] },
-        options: { responsive:true, plugins:{tooltip:{callbacks:{label: ctx => `Rp ${ctx.raw.toLocaleString("id-ID")}`}}} }
+    chartNilai = new Chart(document.getElementById("rekapNilai"), {
+        type:"bar", data:{labels,datasets:[{label:"Nilai (Rp)", data:nilaiPerolehan, backgroundColor:"#6366f1"}]}, options:{responsive:true, plugins:{legend:{display:false}}}
     });
 }
 
-// Toggle detail sekolah
-function toggleDetail(id){
-    const row = document.getElementById(id);
-    if(!row) return;
-    const btn = row.previousElementSibling.querySelector("button");
-    if(row.style.display === "none"){ row.style.display = "table-row"; btn.textContent = "➖"; }
-    else{ row.style.display = "none"; btn.textContent = "➕"; }
-}
-
-// Start
 loadAllData();
 </script>
 
