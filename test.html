@@ -66,7 +66,7 @@ button.expand-btn { background:#001f3f;color:white;border:none;padding:3px 6px;b
 <div class="dashboard">
 <div class="chart-container"><h2>Rekap Konfirmasi Keberadaan</h2><canvas id="rekapKonfirmasi"></canvas></div>
 <div class="chart-container"><h2>Rekap Kondisi Barang</h2><canvas id="rekapKondisi"></canvas></div>
-<div class="chart-container"><h2>Rekap Nilai Perolehan per Kondisi</h2><canvas id="rekapNilai"></canvas></div>
+<div class="chart-container"><h2>Rekap Nilai Perolehan</h2><canvas id="rekapNilai"></canvas></div>
 </div>
 
 <h2 style="padding-left:10px;">Rekap Per Kecamatan</h2>
@@ -99,7 +99,7 @@ function toggleDarkMode(){
     document.getElementById("darkIcon").textContent = document.body.classList.contains("dark-mode") ? "☀️" : "🌙";
 }
 
-// Endpoint CSV per kecamatan lengkap
+// Endpoint CSV per kecamatan
 const kecamatanEndpoints = {
  "Banawa": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSCAaRZ9atAiEb-BvMChP_3Wq6wtmUUlNiTWVtwzh7r9KX5sRRZpq5WppSrSebym8z6-qI3zfWQOTNu/pub?gid=0&single=true&output=csv",
   "Banawa Tengah": "https://docs.google.com/spreadsheets/d/e/2PACX-1vToEAn2MqanfOGSKsDsV0cfGeXt6mJhf7DPEzgFeBl8GQkrbzd4iFuM3tRwyo_wV6m9PlxjQ-9Z0QhC/pub?gid=0&single=true&output=csv",
@@ -119,6 +119,7 @@ const kecamatanEndpoints = {
   "Sojol Utara": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRJAkrtkVPBLcUmM8OsByQDfndFGv-6MetoMsB_DGoqimZQGcAg9Lxe_glv_qAJoVXoY9TCHdnCDa6Y/pub?gid=0&single=true&output=csv"
 };
 
+// Menyimpan data
 let dataKecamatan = {};
 let chartKonfirmasi, chartKondisi, chartNilai;
 
@@ -131,9 +132,7 @@ function parseNumberIndo(val){
         let intPart = val.substring(0,lastComma).replace(/\./g,'');
         let decimalPart = val.substring(lastComma+1);
         val = intPart + '.' + decimalPart;
-    } else {
-        val = val.replace(/\./g,'');
-    }
+    } else { val = val.replace(/\./g,''); }
     return parseFloat(val) || 0;
 }
 
@@ -153,7 +152,7 @@ async function loadAllData(){
             barang: r["Nama Barang"]||"",
             nibar: r["NIBAR"]||r["No. Register"]||"",
             konfirmasi: r["Konfirmasi Keberadaan"]||"Tidak Ditemukan",
-            kondisi: r["Kondisi"]||"Baik",
+            kondisi: r["Kondisi"] || r["Kondisi Saat Ini"] || r["Kondisi Barang"] || "Baik",
             nilai: parseNumberIndo(r["Harga Perolehan"]||r["Nilai Perolehan"])
         }));
     }
@@ -245,18 +244,20 @@ function updateCharts(total){
 
     chartKonfirmasi = new Chart(ctx1, {
         type: "pie",
-        data: { labels:["Ditemukan","Tidak Ditemukan"], datasets:[{data:[total.Ditemukan,total.Tidak]}] }
+        data: { labels:["Ditemukan","Tidak Ditemukan"], datasets:[{data:[total.Ditemukan,total.Tidak]}] },
+        options: { responsive:true, maintainAspectRatio:false }
     });
 
     chartKondisi = new Chart(ctx2, {
         type: "bar",
-        data: { labels:["Baik","Rusak Ringan","Rusak Berat"], datasets:[{data:[total.Baik,total.Ringan,total.Berat]}] }
+        data: { labels:["Baik","Rusak Ringan","Rusak Berat"], datasets:[{data:[total.Baik,total.Ringan,total.Berat], backgroundColor:["#10B981","#F59E0B","#EF4444"]}] },
+        options: { responsive:true, maintainAspectRatio:false }
     });
 
     chartNilai = new Chart(ctx3, {
         type: "doughnut",
-        data: { labels:["Nilai Barang"], datasets:[{data:[total.Nilai]}] },
-        options: { plugins: { tooltip: { callbacks: { label: ctx => `Rp ${ctx.raw.toLocaleString("id-ID")}` } } } }
+        data: { labels:["Nilai Barang"], datasets:[{data:[total.Nilai], backgroundColor:["#3B82F6"]}] },
+        options: { responsive:true, maintainAspectRatio:false, plugins: { tooltip: { callbacks: { label: ctx => `Rp ${ctx.raw.toLocaleString("id-ID")}` } } } }
     });
 }
 
