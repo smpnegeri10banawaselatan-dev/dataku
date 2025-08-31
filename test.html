@@ -19,8 +19,8 @@ h2 { font-size:1.2rem;margin-top:20px; }
 h3 { font-size:1rem;margin-top:15px;color:#1f2937; }
 .dashboard { display:flex; flex-wrap:wrap; gap:10px; margin-top:15px; padding:0 10px; }
 .chart-container, table { background:white; border-radius:8px; padding:10px; box-shadow:0 2px 6px rgba(0,0,0,0.1); width:100%; }
-.chart-container { flex:1 1 300px; }
-canvas { width:100% !important; height:250px !important; }
+.chart-container { flex:1 1 250px; }
+canvas { width:100% !important; height:220px !important; }
 table { width:100%; border-collapse:collapse; font-size:0.85rem; margin-top:10px; }
 th, td { border:1px solid #ddd; padding:6px; text-align:left; }
 th { background-color:#001f3f;color:white;font-size:0.8rem; }
@@ -119,7 +119,6 @@ const kecamatanEndpoints = {
   "Sojol Utara": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRJAkrtkVPBLcUmM8OsByQDfndFGv-6MetoMsB_DGoqimZQGcAg9Lxe_glv_qAJoVXoY9TCHdnCDa6Y/pub?gid=0&single=true&output=csv"
 };
 
-// Menyimpan data
 let dataKecamatan = {};
 let chartKonfirmasi, chartKondisi, chartNilai;
 
@@ -132,7 +131,9 @@ function parseNumberIndo(val){
         let intPart = val.substring(0,lastComma).replace(/\./g,'');
         let decimalPart = val.substring(lastComma+1);
         val = intPart + '.' + decimalPart;
-    } else { val = val.replace(/\./g,''); }
+    } else {
+        val = val.replace(/\./g,'');
+    }
     return parseFloat(val) || 0;
 }
 
@@ -152,7 +153,7 @@ async function loadAllData(){
             barang: r["Nama Barang"]||"",
             nibar: r["NIBAR"]||r["No. Register"]||"",
             konfirmasi: r["Konfirmasi Keberadaan"]||"Tidak Ditemukan",
-            kondisi: r["Kondisi"] || r["Kondisi Saat Ini"] || r["Kondisi Barang"] || "Baik",
+            kondisi: r["Kondisi Saat Ini"]||"Baik",
             nilai: parseNumberIndo(r["Harga Perolehan"]||r["Nilai Perolehan"])
         }));
     }
@@ -187,9 +188,12 @@ function updateData(){
         data.forEach(r=>{
             if(search && !r.sekolah.toLowerCase().includes(search)) return;
             if(r.konfirmasi==="Ditemukan") ditemukan++; else tidak++;
-            if(r.kondisi==="Baik") baik++;
-            else if(r.kondisi==="Rusak Ringan") ringan++;
-            else if(r.kondisi==="Rusak Berat") berat++;
+            // Kondisi dari "Kondisi Saat Ini"
+            switch(r.kondisi){
+                case "Baik": baik++; break;
+                case "Rusak Ringan": ringan++; break;
+                case "Rusak Berat": berat++; break;
+            }
             nilai += r.nilai;
             if(!sekolahMap[r.sekolah]) sekolahMap[r.sekolah] = {barang:0,nilai:0,detail:[]};
             sekolahMap[r.sekolah].barang++;
@@ -214,7 +218,7 @@ function updateData(){
         for(const [sName,val] of Object.entries(sekolahMap)){
             idx++; const detailId=`detail_${kec}_${idx}`;
             html += `<tr><td><button class="expand-btn" onclick="toggleDetail('${detailId}')">➕</button>${sName}</td><td>${val.barang}</td><td>${val.nilai.toLocaleString("id-ID")}</td></tr>`;
-            html += `<tr id="${detailId}" style="display:none;"><td colspan="3"><table style="width:100%; border:1px solid #ddd; font-size:0.8rem;"><thead><tr><th>Nama Barang</th><th>NIBAR</th><th>Kondisi</th><th>Nilai Perolehan (Rp)</th></tr></thead><tbody>`;
+            html += `<tr id="${detailId}" style="display:none;"><td colspan="3"><table style="width:100%; border:1px solid #ddd; font-size:0.8rem;"><thead><tr><th>Nama Barang</th><th>NIBAR</th><th>Kondisi Saat Ini</th><th>Nilai Perolehan (Rp)</th></tr></thead><tbody>`;
             val.detail.forEach(it=>{html += `<tr><td>${it.barang}</td><td>${it.nibar}</td><td>${it.kondisi}</td><td>${it.nilai.toLocaleString("id-ID")}</td></tr>`});
             html += `</tbody></table></td></tr>`;
         }
@@ -244,20 +248,20 @@ function updateCharts(total){
 
     chartKonfirmasi = new Chart(ctx1, {
         type: "pie",
-        data: { labels:["Ditemukan","Tidak Ditemukan"], datasets:[{data:[total.Ditemukan,total.Tidak]}] },
-        options: { responsive:true, maintainAspectRatio:false }
+        data: { labels:["Ditemukan","Tidak Ditemukan"], datasets:[{data:[total.Ditemukan,total.Tidak], backgroundColor:["#4ade80","#f87171"]}] },
+        options: { responsive:true, plugins:{legend:{position:"bottom"}} }
     });
 
     chartKondisi = new Chart(ctx2, {
         type: "bar",
-        data: { labels:["Baik","Rusak Ringan","Rusak Berat"], datasets:[{data:[total.Baik,total.Ringan,total.Berat], backgroundColor:["#10B981","#F59E0B","#EF4444"]}] },
-        options: { responsive:true, maintainAspectRatio:false }
+        data: { labels:["Baik","Rusak Ringan","Rusak Berat"], datasets:[{data:[total.Baik,total.Ringan,total.Berat], backgroundColor:["#3b82f6","#facc15","#f87171"]}] },
+        options: { responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}} }
     });
 
     chartNilai = new Chart(ctx3, {
         type: "doughnut",
-        data: { labels:["Nilai Barang"], datasets:[{data:[total.Nilai], backgroundColor:["#3B82F6"]}] },
-        options: { responsive:true, maintainAspectRatio:false, plugins: { tooltip: { callbacks: { label: ctx => `Rp ${ctx.raw.toLocaleString("id-ID")}` } } } }
+        data: { labels:["Nilai Barang"], datasets:[{data:[total.Nilai], backgroundColor:["#6366f1"]}] },
+        options: { responsive:true, plugins:{tooltip:{callbacks:{label: ctx => `Rp ${ctx.raw.toLocaleString("id-ID")}`}}} }
     });
 }
 
