@@ -75,13 +75,13 @@ button.expand-btn { background:#001f3f;color:white;border:none;padding:3px 6px;b
 <table id="rekapTable">
 <thead>
 <tr>
-<th>Kecamatan</th><th>Ditemukan</th><th>Tidak Ditemukan</th><th>Baik</th><th>Rusak Ringan</th><th>Rusak Berat</th><th>Nilai Perolehan (Rp)</th>
+<th>Kecamatan</th><th>Ditemukan</th><th>Tidak Ditemukan</th><th>Baik</th><th>Rusak Ringan</th><th>Rusak Berat</th><th>Tidak Diketemukan</th><th>Nilai Perolehan (Rp)</th>
 </tr>
 </thead>
 <tbody></tbody>
 <tfoot>
 <tr style="font-weight:bold; background:#e5e7eb; color:black;">
-<td>Total</td><td id="totalDitemukan">0</td><td id="totalTidakDitemukan">0</td><td id="totalBaik">0</td><td id="totalRusakRingan">0</td><td id="totalRusakBerat">0</td><td id="totalNilai">0</td>
+<td>Total</td><td id="totalDitemukan">0</td><td id="totalTidakDitemukan">0</td><td id="totalBaik">0</td><td id="totalRusakRingan">0</td><td id="totalRusakBerat">0</td><td id="totalTidakDiketemukan">0</td><td id="totalNilai">0</td>
 </tr>
 </tfoot>
 </table>
@@ -100,7 +100,7 @@ function toggleDarkMode(){
 }
 
 // Endpoint CSV per kecamatan
-const kecamatanEndpoints = {
+const kecamatanEndpoints = { const dataKecamatan = {
   "Banawa": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSCAaRZ9atAiEb-BvMChP_3Wq6wtmUUlNiTWVtwzh7r9KX5sRRZpq5WppSrSebym8z6-qI3zfWQOTNu/pub?gid=0&single=true&output=csv",
   "Banawa Tengah": "https://docs.google.com/spreadsheets/d/e/2PACX-1vToEAn2MqanfOGSKsDsV0cfGeXt6mJhf7DPEzgFeBl8GQkrbzd4iFuM3tRwyo_wV6m9PlxjQ-9Z0QhC/pub?gid=0&single=true&output=csv",
   "Banawa Selatan": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQwth8ToDewTdvfvhlYuywOolNFwvc6eA4wer_OGKgNk-FoDvIQaHthsQHtMiis3cAsj4AnLzYKXG9p/pub?gid=0&single=true&output=csv",
@@ -118,6 +118,7 @@ const kecamatanEndpoints = {
   "Sojol": "https://docs.google.com/spreadsheets/d/e/2PACX-1vR_M8W7eNSRgJiDs-lU0zBDAT2OEAN6J1g1G9UvgreUf7GS0_Q987XsgzYdDESWAu_P86BezxKn6nJl/pub?gid=0&single=true&output=csv",
   "Sojol Utara": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRJAkrtkVPBLcUmM8OsByQDfndFGv-6MetoMsB_DGoqimZQGcAg9Lxe_glv_qAJoVXoY9TCHdnCDa6Y/pub?gid=0&single=true&output=csv"
 };
+ };
 
 let dataKecamatan = {};
 let chartKonfirmasi, chartKondisi, chartNilai;
@@ -179,11 +180,11 @@ function updateData(){
     const tbody = document.querySelector("#rekapTable tbody");
     tbody.innerHTML = "";
     document.getElementById("sekolahSection").innerHTML = "";
-    let total = {Ditemukan:0, Tidak:0, Baik:0, Ringan:0, Berat:0, TidakDitemukanKondisi:0, Nilai:0};
+    let total = {Ditemukan:0, Tidak:0, Baik:0, Ringan:0, Berat:0, TidakDiketemukan:0, Nilai:0};
 
     for(const [kec, data] of Object.entries(dataKecamatan)){
         if(filter !== "all" && filter !== kec) continue;
-        let ditemukan=0,tidak=0,baik=0,ringan=0,berat=0,tidakKondisi=0,nilai=0;
+        let ditemukan=0,tidak=0,baik=0,ringan=0,berat=0,tidakKetemu=0,nilai=0;
         const sekolahMap = {};
 
         data.forEach(r=>{
@@ -192,14 +193,11 @@ function updateData(){
             if(r.konfirmasi==="Ditemukan") ditemukan++; else tidak++;
 
             // Kondisi Barang
-            if(!r.kondisi || r.kondisi.trim()==="") tidakKondisi++;
-            else {
-                switch(r.kondisi){
-                    case "Baik": baik++; break;
-                    case "Rusak Ringan": ringan++; break;
-                    case "Rusak Berat": berat++; break;
-                }
-            }
+            if(!r.kondisi || r.kondisi.trim()==="") tidakKetemu++;
+            else if(r.kondisi==="Baik") baik++;
+            else if(r.kondisi==="Rusak Ringan") ringan++;
+            else if(r.kondisi==="Rusak Berat") berat++;
+            else tidakKetemu++; // untuk kondisi tidak dikenal
 
             nilai += r.nilai;
 
@@ -215,14 +213,14 @@ function updateData(){
         total.Baik += baik;
         total.Ringan += ringan;
         total.Berat += berat;
+        total.TidakDiketemukan += tidakKetemu;
         total.Nilai += nilai;
-        total.TidakDitemukanKondisi += tidakKondisi;
 
         const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${kec}</td><td>${ditemukan}</td><td>${tidak}</td><td>${baik}</td><td>${ringan}</td><td>${berat}</td><td>${nilai.toLocaleString("id-ID")}</td>`;
+        tr.innerHTML = `<td>${kec}</td><td>${ditemukan}</td><td>${tidak}</td><td>${baik}</td><td>${ringan}</td><td>${berat}</td><td>${tidakKetemu}</td><td>${nilai.toLocaleString("id-ID")}</td>`;
         tbody.appendChild(tr);
 
-        // Bagian sekolah sama seperti sebelumnya
+        // Bagian sekolah
         const section = document.getElementById("sekolahSection");
         let html = `<h3>Daftar Sekolah - ${kec}</h3><table><thead><tr><th>Nama Sekolah</th><th>Jumlah Barang</th><th>Nilai Perolehan (Rp)</th></tr></thead><tbody>`;
         let idx=0;
@@ -230,7 +228,7 @@ function updateData(){
             idx++; const detailId=`detail_${kec}_${idx}`;
             html += `<tr><td><button class="expand-btn" onclick="toggleDetail('${detailId}')">➕</button>${sName}</td><td>${val.barang}</td><td>${val.nilai.toLocaleString("id-ID")}</td></tr>`;
             html += `<tr id="${detailId}" style="display:none;"><td colspan="3"><table style="width:100%; border:1px solid #ddd; font-size:0.8rem;"><thead><tr><th>Nama Barang</th><th>NIBAR</th><th>Kondisi Saat Ini</th><th>Nilai Perolehan (Rp)</th></tr></thead><tbody>`;
-            val.detail.forEach(it=>{html += `<tr><td>${it.barang}</td><td>${it.nibar}</td><td>${it.kondisi || "Tidak Ditemukan"}</td><td>${it.nilai.toLocaleString("id-ID")}</td></tr>`});
+            val.detail.forEach(it=>{html += `<tr><td>${it.barang}</td><td>${it.nibar}</td><td>${it.kondisi || "Tidak Diketemukan"}</td><td>${it.nilai.toLocaleString("id-ID")}</td></tr>`});
             html += `</tbody></table></td></tr>`;
         }
         html += `</tbody></table>`;
@@ -242,6 +240,7 @@ function updateData(){
     document.getElementById("totalBaik").textContent = total.Baik;
     document.getElementById("totalRusakRingan").textContent = total.Ringan;
     document.getElementById("totalRusakBerat").textContent = total.Berat;
+    document.getElementById("totalTidakDiketemukan").textContent = total.TidakDiketemukan;
     document.getElementById("totalNilai").textContent = total.Nilai.toLocaleString("id-ID");
     document.getElementById("lastUpdate").textContent = "Data terakhir diperbarui: " + new Date().toLocaleTimeString();
 
@@ -267,8 +266,8 @@ function updateCharts(total){
     chartKondisi = new Chart(ctx2, {
         type: "bar",
         data: { 
-            labels:["Baik","Rusak Ringan","Rusak Berat","Tidak Ditemukan"], 
-            datasets:[{data:[total.Baik,total.Ringan,total.Berat,total.TidakDitemukanKondisi], backgroundColor:["#3b82f6","#facc15","#f87171","#9ca3af"]}] 
+            labels:["Baik","Rusak Ringan","Rusak Berat","Tidak Diketemukan"], 
+            datasets:[{data:[total.Baik,total.Ringan,total.Berat,total.TidakDiketemukan], backgroundColor:["#3b82f6","#facc15","#f87171","#9ca3af"]}] 
         },
         options: { responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}} }
     });
